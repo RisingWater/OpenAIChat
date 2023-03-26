@@ -1,140 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Layout } from 'antd';
-import { Input, Button, Space } from 'antd';
-import { List, Avatar } from 'antd';
+import { Layout, Space } from 'antd';
+import { ChatBox, ChatWindow } from './component/chat_component.js';
+import { HeaderBar } from './component/headerbar.js'
 import $ from 'jquery';
 
 const { Header, Content, Footer } = Layout;
 
-class ChatWindow extends React.Component {
-    constructor(props) {
-        super(props);
-        this.chatWindowRef = React.createRef();
-        console.log("contentHeight" + this.props.contentHeight);
-
-        this.state = {
-            humanAvatar: "./image/human.png",
-            AIAvatar: "./image/ai.png",
-            dataSource: [],
-        }
-    }
-
-    RefreshDataSource() {
-        $.ajax({
-            type: "get",
-            url: "/get_all_chat",
-            contentType: "application/json",
-            success: (data, status) => {
-                if (status == "success") {
-                    console.log(data);
-                    this.setState({ dataSource: data });
-                }
-            }
-        });
-    }
-
-    componentDidMount() {
-        this.RefreshDataSource();
-    }
-
-    componentDidUpdate() {
-        const chatWindow = this.chatWindowRef.current;
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    render() {
-        return (
-            <div ref={this.chatWindowRef} style={{ maxHeight: this.props.contentHeight, minHeight: this.props.contentHeight, width: "100%", overflowY: 'auto' }}>
-                <List
-                    itemLayout="horizontal"
-                    dataSource={this.state.dataSource}
-                    renderItem={item => (
-                        <List.Item>
-                            <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
-                                <Space>
-                                    <Avatar src={item.role == 0 ? this.state.humanAvatar : this.state.AIAvatar} />
-                                    <div style={{ fontSize: 20 }}>{item.name}</div>
-                                </Space>
-                                <div style={{ fontSize: 16, wordWrap : "break-word",  whiteSpace: "pre-wrap" }}>{item.content}</div>
-                                <div style={{ fontSize: 10 }}>{item.time}</div>
-                            </Space>
-                        </List.Item>
-                    )}
-                />
-            </div>
-        );
-    }
-}
-
-class ChatBox extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            inputValue: "",
-            isChatDisabled: false
-        };
-    }
-
-    onChatBoxClick() {
-        this.setState({ isChatDisabled: true }, () => {
-            $.ajax({
-                type: "post",
-                url: "/get_answer_directly",
-                contentType: "application/json",
-                async: true,
-                data: JSON.stringify({ input: this.state.inputValue }),
-                success: (data, status) => {
-                    if (data.result == 0) {
-                        console.log("ajax ok");
-                    } else {
-                        console.log("ajax failed");
-                    }
-                    this.setState({ inputValue: "" });
-                    this.setState({ isChatDisabled: false })
-                    this.props.onChange();
-                }
-            });
-        });
-    }
-
-    onChatBoxClear() {
-        this.setState({ isChatDisabled: true }, () => {
-            $.ajax({
-                type: "get",
-                url: "/clear_chat",
-                contentType: "application/json",
-                success: (data, status) => {
-                    if (status == "success") {
-                        this.setState({ inputValue: "" });
-                        this.setState({ isChatDisabled: false })
-                        this.props.onChange();
-                    }
-                }
-            });
-        });
-    }
-
-    handleInputChange(event) {
-        this.setState({ inputValue: event.target.value });
-    }
-
-    render() {
-        return (
-            <Space.Compact style={{ width: '100%' }}>
-                <Input placeholder="输入你的问题"
-                    value={this.state.inputValue}
-                    onChange={this.handleInputChange.bind(this)}
-                    disabled={this.state.isChatDisabled} />
-                <Button type="primary"
-                    onClick={this.onChatBoxClick.bind(this)}
-                    loading={this.state.isChatDisabled}>提问</Button>
-                <Button
-                    onClick={this.onChatBoxClear.bind(this)}
-                    disabled={this.state.isChatDisabled}>清除记录</Button>
-            </Space.Compact>
-        )
-    }
+function getCookie(name)
+{
+    var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+    return (arr = document.cookie.match(reg)) ? unescape(arr[2]) : null;
 }
 
 class RootContext extends React.Component {
@@ -147,7 +23,63 @@ class RootContext extends React.Component {
 
         this.state = {
             ContextHeight: 0,
-            CheckWindowHeight: 0
+            CheckWindowHeight: 0,
+            chatid : "",
+            user : {
+                result : -1,
+                userid : "",
+                username : "",
+                isAdmin : false
+            }
+        }
+    }
+    
+    reload_user() {
+        var userid = getCookie("userid");
+        var user = null;
+
+        if (userid == null) {
+            return null;
+        }
+
+        var json = JSON.stringify({
+            userid : userid,
+        })
+
+        $.ajax({
+            type: "post",
+            url:  "/user/check",
+            contentType: "application/json",
+            data: json,
+            async: false,
+            success: (data, status) => {
+                if (status == "success") {
+                    if (data.result == 0) {
+                        user = data;
+                    } else {
+                        console.log("user/check failed");
+                    }
+                }
+            }
+        });
+
+        if (user != null) {
+            this.setState({ user : user });
+            if (user.username == "guest") {
+                this.setState({ guest : true});
+            } else {
+                this.setState({ guest : false});
+            }
+        }
+
+        return user;
+    }
+
+    componentWillMount() {
+        var user = this.reload_user();
+
+        if (user == null) {
+            window.location.href = "./user_operation.html?op=login"
         }
     }
 
@@ -159,12 +91,6 @@ class RootContext extends React.Component {
         var ContextHeight = WindowHeight - HeaderHeight - FooterHeight * 2;
         var CheckWindowHeight = ContextHeight - CheckBoxHeight;
 
-        console.log("WindowHeight:" + WindowHeight);
-        console.log("HeaderHeight:" + HeaderHeight);
-        console.log("FooterHeight:" + FooterHeight);
-        console.log("ContextHeight:" + ContextHeight);
-        console.log("CheckBoxHeight:" + CheckBoxHeight);
-        console.log("CheckWindowHeight:" + CheckWindowHeight);
         this.setState({
             ContextHeight: ContextHeight,
             CheckWindowHeight: CheckWindowHeight
@@ -172,23 +98,22 @@ class RootContext extends React.Component {
     }
 
     onChatBoxChange() {
-        console.log("onChatBoxChange");
         this.ChatWindoRef.current.RefreshDataSource();
     }
 
     render() {
         return (
             <Layout style={{ display: 'flex', flexDirection: 'column' }}>
-                <Header ref={this.HeaderRef}>
-                    <div style={{ display: 'flex', justifyContent: 'left', alignItems: 'center', color: 'white' }}>OpenAIChat Test</div>
-                </Header>
+                <div ref={this.HeaderRef} >
+                    <HeaderBar user={this.state.user}/>
+                </div>
                 <Content style={{ flex: '1 0 auto', padding: 24, margin: 0, width: "100%", height: this.state.ContextHeight }}>
                     <div style={{ width: "100%", height: "100%" }}>
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <Space direction="vertical" size="middle" style={{ display: 'flex', width: "100%" }}>
-                                <ChatWindow ref={this.ChatWindoRef} contentHeight={this.state.CheckWindowHeight} />
+                                <ChatWindow ref={this.ChatWindoRef} contentHeight={this.state.CheckWindowHeight} userid={this.state.user.userid}/>
                                 <div ref={this.ChatBoxRef}>
-                                    <ChatBox onChange={this.onChatBoxChange.bind(this)} />
+                                    <ChatBox onChange={this.onChatBoxChange.bind(this)} userid={this.state.user.userid}/>
                                 </div>
                             </Space>
                         </div>

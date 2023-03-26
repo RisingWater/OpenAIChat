@@ -1,0 +1,21 @@
+.centerblock2 {
+    margin: 0px auto;
+}
+
+.login_div {
+    width: 300px;
+    margin: 0px auto;
+    margin-top: 50px;
+}
+
+.login-form {
+    max-width: 300px;
+    margin-top: 20px;
+}
+
+.login-form-forgot {
+    float: right;
+}
+.login-form-button {
+    width: 100%;
+}

@@ -4,31 +4,25 @@ const path = require('path');
 
 const app = express();
 
-var comm = require('./communication.js');
-var chatdb_controller = require('./chatdb_controller.js')
+var chat_operator = require('./chat_operator.js');
+var user_operator = require('./user_operator.js');
 
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+app.post('/user/check', user_operator.check);
+app.post('/user/login', user_operator.login);
+app.post('/user/register', user_operator.register);
+app.post('/user/changepassword', user_operator.changepassword);
+app.post('/user/getchatid', user_operator.getchatid);
+app.post('/user/newchatid', user_operator.newchatid);
+
+app.post('/chat/show_all', chat_operator.show_all);
+app.post('/chat/chat_directly', chat_operator.chat_directly);
+
 app.get('/', (req, res) => {
     res.redirect("index.html");
 });
-
-app.get('/get_all_chat', (req, res) =>{
-    var chats = chatdb_controller.list_chat();
-    res.send(chats);
-})
-
-app.get('/clear_chat', (req, res) =>{
-    var chats = chatdb_controller.clear_chat();
-    res.send("ok");
-})
-
-app.post('/get_answer_directly', (req, res) => {
-    comm.chat(req.body.input).then(
-        result=>res.send(result)
-    );
-})
 
 app.listen(80, () => {
     console.log('Server started on port 80');

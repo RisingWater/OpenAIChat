@@ -6,6 +6,7 @@ module.exports = {
     mode: 'production',
     entry: {
         openaichat_bundle: './src/frontend/openaichat_bundle.js',
+        useroperation_bundle: './src/frontend/useroperation_bundle.js',
     },
     output: {
         filename: '[name].js',

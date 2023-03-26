@@ -1,28 +1,23 @@
 var db = require('./db.js');
 
-exports.list_chat = function() {
-    return db.load_chat_db();
+exports.list_chat = function(chatid) {
+    return db.load_chat_db(chatid);
 }
 
-exports.add_user_chat = function(input) {
+exports.add_user_chat = function(chatid, input) {
     const now = new Date();
     const dateString = now.toLocaleString();
 
-    var chat = db.load_chat_db();
+    var chat = db.load_chat_db(chatid);
     const newChat = [...chat, { name: 'You', role: 0, content: input, time: dateString }];
-    db.save_chat_db(newChat);
+    db.save_chat_db(chatid, newChat);
 }
 
-exports.add_ai_chat = function(input) {
+exports.add_ai_chat = function(chatid, input) {
     const now = new Date();
     const dateString = now.toLocaleString();
 
-    var chat = db.load_chat_db();
+    var chat = db.load_chat_db(chatid);
     const newChat = [...chat, { name: 'Chatgpt', role: 1, content: input, time: dateString }];
-    db.save_chat_db(newChat);
-}
-
-exports.clear_chat = function() {
-    const newChat = [];
-    db.save_chat_db(newChat);
+    db.save_chat_db(chatid, newChat);
 }
